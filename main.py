@@ -72,6 +72,20 @@ def get_user_cards(username):
 
     return response.json()
 
+def purchase_pack(access):
+    url = f"{BASE_URL}/cards/random/"
+
+    payload = {
+        "count": 3
+    }
+
+    response = requests.post(url, json=payload, headers={"Authorization": f"Bearer {access}"})
+
+    if response.status_code != 201:
+        raise Exception(f"Failed to purchase pack: {response.text}")
+    
+    return response.json()
+
 def sell_card(card_id, price, access):
     url = f"{BASE_URL}/cards/marketplace/"
 
@@ -122,8 +136,15 @@ def gain_creds(clients=20):
 
     for _ in range(clients):
         main_cards = get_user_cards(main_account["username"])
-        # find card with rarity common and not shiny
-        card_to_sell = next((card for card in main_cards if card["rarity"] == "common" and not card["shiny"]), None)
+
+        if not main_cards:
+            purchase_pack(tokens["access"])
+            main_cards = get_user_cards(main_account["username"])
+
+        # sort by rarity
+        rarity_order = ['common', 'uncommon', 'rare', 'ultra_rare', 'legendary', "mythical"]
+
+        card_to_sell = sorted(main_cards, key=lambda x: rarity_order.index(x["rarity"]))[0]
 
         if card_to_sell is None:
             print("No cards to sell")
@@ -157,4 +178,4 @@ def spam_welcome_packs(packs=20):
     
     
 if __name__ == "__main__":
-    spam_welcome_packs(100)
+    gain_creds(20)
